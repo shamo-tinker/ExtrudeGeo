@@ -4,11 +4,11 @@ import { Extrude, OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { useState, useEffect, useRef } from "react";
 import { fabric } from "fabric";
-import { Point } from "fabric/fabric-impl";
 
 function App() {
-  const [rectWidth, setRectWidth] = useState(150);
-  const [rectHeight, setRectHeight] = useState(150);
+  const [rectWidth, setRectWidth] = useState(100);
+  const [rectHeight, setRectHeight] = useState(100);
+  const [depth, setDepth] = useState(100);
   const defaultRectangle = new THREE.Shape();
   defaultRectangle.moveTo(-40, -40);
   defaultRectangle.lineTo(40, -40);
@@ -16,12 +16,12 @@ function App() {
   defaultRectangle.lineTo(-40, 40);
   defaultRectangle.lineTo(-40, -40);
   const [currentRectangle, setCurrentRectangle] = useState(defaultRectangle);
-  const [canvas, setCanvas] = useState(null);
   const canvasRef = useRef(null);
+  const [canvas, setCanvas] = useState<fabric.Canvas | undefined>();
   const initCanvas = () =>
     new fabric.Canvas("c", {
-      width: window.innerWidth / 2,
-      height: window.innerHeight / 2,
+      width: 500,
+      height: 500,
       backgroundColor: "#aaaaaa",
     });
 
@@ -46,59 +46,9 @@ function App() {
     ];
   };
 
-  const origin = [
-    {
-      x: 3,
-      y: 4,
-    },
-    {
-      x: 16,
-      y: 3,
-    },
-    {
-      x: 30,
-      y: 5,
-    },
-    {
-      x: 25,
-      y: 55,
-    },
-    {
-      x: 19,
-      y: 44,
-    },
-    {
-      x: 15,
-      y: 30,
-    },
-    {
-      x: 15,
-      y: 55,
-    },
-    {
-      x: 9,
-      y: 55,
-    },
-    {
-      x: 6,
-      y: 53,
-    },
-    {
-      x: -2,
-      y: 55,
-    },
-    {
-      x: -4,
-      y: 40,
-    },
-    {
-      x: 0,
-      y: 20,
-    },
-  ];
   let polygon = new fabric.Polygon(calcRectPoints(rectWidth, rectHeight), {
-    left: innerWidth / 4 - rectWidth / 2,
-    top: innerHeight / 4 - rectHeight / 2,
+    left: 250 - rectWidth / 2,
+    top: 250 - rectHeight / 2,
     fill: "transparent",
     strokeWidth: 1,
     stroke: "black",
@@ -218,12 +168,28 @@ function App() {
   }
 
   useEffect(() => {
-    const canvas = initCanvas();
-    setCanvas(canvas);
-    canvas.add(polygon);
-    canvas.setActiveObject(polygon);
+    const _canvas = initCanvas();
+    setCanvas(_canvas);
   }, []);
 
+  const PlaceRectangle = () => {
+    canvas?.add(polygon);
+    canvas?.setActiveObject(polygon);
+    canvas?.requestRenderAll();
+  };
+
+  const UpdateRectangle = () => {
+    const obj = canvas?.getActiveObject();
+    console.log(obj);
+    const newPos = calcRectPoints(rectWidth, rectHeight);
+    obj?.set({
+      width: rectWidth,
+      height: rectHeight,
+      points: newPos,
+    });
+
+    canvas?.requestRenderAll();
+  };
   const Reshape = () => {
     const updatedPoint = canvas.getObjects()[0].points;
     console.log("Updated Position of the point", updatedPoint);
@@ -236,14 +202,8 @@ function App() {
     setCurrentRectangle(updatedRectangle);
   };
 
-  const UpdateRectangle = () => {
-    canvas.requestRenderAll();
-    canvas.renderAll();
-    canvas.renderAll.bind(canvas);
-    console.log("123", polygon.points);
-  };
   function ExtrudedModel() {
-    const extrudeSettings = { steps: 2, depth: 5, bevelEnabled: false };
+    const extrudeSettings = { steps: 1, depth: depth, bevelEnabled: false };
     return (
       <>
         <Extrude args={[currentRectangle, extrudeSettings]}></Extrude>
@@ -251,56 +211,106 @@ function App() {
     );
   }
   return (
-    <>
-      <h1>This is a demo app for Geometry Extrude</h1>
+    <div>
+      <h2>This is a demo app for Geometry Extrude</h2>
       <div>
-        <div>
-          <span>Width: </span>
-          <input
-            value={rectWidth}
-            onChange={(e) => {
-              setRectWidth(Number(e.target.value));
-              console.log("origin", polygon.points);
-              console.log("new", calcRectPoints(rectWidth, rectHeight));
-              const pt = calcRectPoints(rectWidth, rectHeight);
-              polygon.points?.forEach((point, index) => {
-                polygon.points[index] = pt[index];
-              });
-              console.log("chanaged", polygon.points);
-            }}
-          ></input>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-evenly",
+          }}
+        >
+          <div>
+            <span>Width: </span>
+            <input
+              value={rectWidth}
+              onChange={(e) => {
+                setRectWidth(Number(e.target.value));
+              }}
+            ></input>
+          </div>
+          <div>
+            <span>height: </span>
+            <input
+              value={rectHeight}
+              onChange={(e) => {
+                setRectHeight(Number(e.target.value));
+              }}
+            ></input>
+          </div>
+          <div>
+            <span>Depth: </span>
+            <input
+              value={depth}
+              onChange={(e) => {
+                setDepth(Number(e.target.value));
+              }}
+            ></input>
+          </div>
         </div>
-        <div>
-          <span>height: </span>
-          <input
-            value={rectHeight}
-            onChange={(e) => {
-              setRectHeight(Number(e.target.value));
-            }}
-          ></input>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "center",
+            marginTop: 30,
+            marginBottom: 30,
+            gap: 20,
+          }}
+        >
+          <button
+            style={{ backgroundColor: "#155CA2", color: "white" }}
+            onClick={() => PlaceRectangle()}
+          >
+            Place Rectangle
+          </button>
+          <button
+            style={{ backgroundColor: "#155CA2", color: "white" }}
+            onClick={() => UpdateRectangle()}
+          >
+            Update Rectangle
+          </button>
+          <button
+            style={{ backgroundColor: "#155CA2", color: "white" }}
+            onClick={() => Edit()}
+          >
+            Edit Button
+          </button>
+          <button
+            style={{ backgroundColor: "#155CA2", color: "white" }}
+            onClick={() => Reshape()}
+          >
+            {" "}
+            Reshape Object
+          </button>
         </div>
-        <button onClick={() => UpdateRectangle()}>Update Rectangle</button>
-        <button onClick={() => Edit()}>Edit Button</button>
-        <button onClick={() => Reshape()}> Reshape Object</button>
       </div>
-      <div>
-        <canvas id="c" ref={canvasRef} />
-      </div>
-      <Canvas
+      <div
         style={{
-          width: window.innerWidth / 2,
-          height: window.innerHeight / 2,
-          backgroundColor: "grey",
+          width: "100%",
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "center",
         }}
-        camera={{ position: [-20, 10, 20] }}
       >
-        <ambientLight intensity={0.3} />
-        <pointLight position={[10, 10, 10]} intensity={0.3} />
-        <ExtrudedModel />
-        <OrbitControls />
-        <gridHelper />
-      </Canvas>
-    </>
+        <canvas id="c" ref={canvasRef} />
+        <Canvas
+          style={{
+            width: 500,
+            height: 500,
+            backgroundColor: "grey",
+          }}
+          camera={{ position: [-200, 200, 200] }}
+        >
+          <ambientLight intensity={0.3} />
+          <pointLight position={[10, 10, 10]} intensity={0.3} />
+          <ExtrudedModel />
+          <OrbitControls />
+          <gridHelper args={[250, 250]} />
+        </Canvas>
+      </div>
+    </div>
   );
 }
 
